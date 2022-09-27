@@ -1,0 +1,58 @@
+# vi workers.properties
+# -------------------
+worker.list=router,status
+# -------------------
+worker.template.type=ajp13
+worker.template.ping_mode=A
+worker.template.socket_connect_timeout=10000
+worker.template.connection_pool_size=15
+ 
+# -------------------
+# tomcat8a WAS Server
+# -------------------
+worker.tomcat8a.host=192.168.56.101
+worker.tomcat8a.port=8009
+worker.tomcat8a.reference=worker.template
+ 
+# -------------------
+# tomcat8b WAS Server
+# -------------------
+worker.tomcat8b.host=192.168.56.101
+worker.tomcat8b.port=8109
+worker.tomcat8b.reference=worker.template
+ 
+# Define the LB worker
+worker.router.type=lb
+worker.router.balance_workers=tomcat8a,tomcat8b
+worker.status.type=status
+
+
+# Load mod_jk module
+LoadModule jk_module modules/mod_jk.so
+ 
+# Where to find workers.properties
+JkWorkersFile conf/workers.properties
+ 
+# Where to put jk shared memory
+JkShmFile logs/jk.shm
+ 
+JkOptions +ForwardLocalAddress
+ 
+# Where to put jk logs
+JkLogFile "|/app/web/apache24/bin/rotatelogs /app/web/apache24/logs/mod_jk_%Y%m%d%H.log 86400"
+ 
+# Set the jk log level [debug/error/info]
+JkLogLevel info
+ 
+# Select the timestamp log format
+JkLogStampFormat "[%a %b %d %H:%M:%S %Y] "
+ 
+# Send servlet for context /examples to worker named worker
+JkMount /* router
+#JkMountFile conf/uriworkermap.properties
+ 
+<Location /jkstatus>
+    JkMount status
+    Order deny,allow
+    Allow from 192.168.56.101
+</Location>
